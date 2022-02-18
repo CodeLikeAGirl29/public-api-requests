@@ -7,4 +7,6 @@ This project requests data from a third party API (https://randomuser.me), and d
 
 Remarks
 This project is intended as a JavaScript project, so the HTML and CSS files were provided. Most of the page is generated with JavaScript, conforming to HTML templates (so that the CSS will work). I made changes to the provided CSS files to make the following customizations:
-
+  - added hot pink accents to the font and modal border
+  - changed background to a tinted gray
+  - added font shadow to the h1
