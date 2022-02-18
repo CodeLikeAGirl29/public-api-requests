@@ -1,8 +1,6 @@
-// ****************************************************************************
-// *                                                                          *
-// *  Variable Definitions                                                    *
-// *                                                                          *
-// ****************************************************************************
+/* ===================================== 
+   Variables
+======================================== */
 
 // As per the requirements, we fetch 12 people from the api:
 const nrEmployeesToFetch = 12;
@@ -21,18 +19,15 @@ const api = {
     ]
 }
 
-// The 'peopleData' array will hold the people objects we fetched from the api
+// The 'peopleData' array goes hold
 let peopleData = [];
 
-// The 'galleryDiv' is the element into which we will inject the 'card' 
-// elements (see the 'creatCard' function below)
+// The 'galleryDiv'
 const galleryDiv = document.getElementById('gallery');
 
-// ****************************************************************************
-// *                                                                          *
-// *  Function Definitions                                                    *
-// *                                                                          *
-// ****************************************************************************
+/* ===================================== 
+   Functions
+======================================== */
 
 /**
  * Takes in details about a person and returns a business card in the form of
@@ -213,12 +208,12 @@ function fetchData(url) {
         .catch(error => console.log('Looks like there was a problem!', error));
 }
 
-// this little helper function returns the full api url
+// returns the full api url
 function getAPIString(api) {
     return `${api.url}?${api.parameters.join('&')}`;
 }
 
-// This little helper function reformats the phone number to the desired format
+// reformats the phone number to the desired format
 function reformatCellNr(cellNr) {
     // keep digits only using regex & replace: 
     let retStr = cellNr.replace(/[^\d]/g, ''); 
@@ -227,7 +222,7 @@ function reformatCellNr(cellNr) {
     return retStr;
 }
 
-// This little helper function reformats the birthday in the desired format
+// reformats the birthday in the desired format
 function reformatBirthDay(birthday) {
     // we only need the date, not the time:
     let retStr = birthday.substring(0,10);
@@ -238,10 +233,7 @@ function reformatBirthDay(birthday) {
 
 /**
  * Takes the array of people as a parameter and stores the data in the global 
- * variable 'peopleData' for later use. We only keep the data we need. Notice
- * how each object knows its own location inside the array 'peopleData' since 
- * we store it inside the object as 'index'. This is done so we can navigate 
- * through the array easily later on.
+ * variable 'peopleData' for later use.
  *
  * @param {Array of objects} peopleArray - the data returned from the api
  * @returns {promise} - returns a promise that resolves to the newly arranged
@@ -273,7 +265,7 @@ function savePeopleData(peopleArray) {
  * 'createCard' function into the DOM. It returns its parameter unmodified so 
  * that further ".then()" statements can be chained to the calling promise.
  *
- * @param {Array of objects} people - the reworked data returned from the api
+ * @param {Array of objects} people - the data returned from the api
  * @returns {Array of objects} - returns the same array
  */
 function insertPeopleToDom(people) {
@@ -284,13 +276,9 @@ function insertPeopleToDom(people) {
     return people;
 }
 
-// ****************************************************************************
-// ****************************************************************************
-// **                                                                        **
-// **  Start of the script                                                   **
-// **                                                                        **
-// ****************************************************************************
-// ****************************************************************************
+/* ===================================== 
+   Script
+======================================== */
 
 // Give a loading screen to the user
 galleryDiv.innerHTML = '<h1>Loading Data...</h1>';
@@ -321,7 +309,7 @@ galleryDiv.addEventListener('click', (event) => {
     modalCloseButton.addEventListener('click', () => {
         modalCloseButton.parentNode.parentNode.remove();
     });
-    // add the event listeners for the navigation buttons in the modal
+    //  event listeners for the navigation buttons
     const navButtons = [
         document.getElementById('modal-prev'),
         document.getElementById('modal-next')
