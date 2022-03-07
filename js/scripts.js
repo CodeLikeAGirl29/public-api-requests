@@ -1,332 +1,164 @@
-/* ===================================== 
-   Variables
-======================================== */
+// Global Variables
+const url = 'https://randomuser.me/api/?results=12';
+const gallery = document.getElementById('gallery');
+const searchDiv = document.querySelector('.search-container');
+let current;
 
-// As per the requirements, we fetch 12 people from the api:
-const nrEmployeesToFetch = 12;
+// Create Search Bar
+searchDiv.innerHTML = 
+`<form action="#" method="get">
+    <input type="search" id="search-input" class="search-input" placeholder="Search...">
+    <input type="submit" value="&#x1F50D;" id="search-submit" class="search-submit">
+</form>`;
 
-// Details of the API and its parameters
-const api = {
-    // We specify the api version so this script will not break on api update
-    url: 'https://randomuser.me/api/1.3/',
-    parameters: [
-        // define what data we are interested in
-        'inc=picture,name,email,location,cell,dob', 
-        // define how many objects we would like to receive
-        `results=${nrEmployeesToFetch}`,            
-        // restrict nationalities to english (for the exceeds requirement)
-        'nat=gb,us'                                
-    ]
+// Grab ID's of Search Input
+const searchSubmit = document.getElementById('search-submit');
+const searchSpace = document.getElementById('search-input');
+
+// API Selector Function
+function getApi(url) {
+   return fetch(url)
+    .then(data => data.json())
+    .catch(err => console.log(Error(`Something went wrong ${err}`)))
 }
+// Call API Function
+getApi(url)
+.then (data => {
+    galleryHtml(data);
+    modalHtml(data)
+})
+.then (() => {
+    const cards = document.querySelectorAll('.card');
+    const modals = document.querySelectorAll('.modal-container');
+    const x = document.querySelectorAll('.modal-close-btn');
+    const next = document.querySelectorAll('.modal-next');
+    const prev = document.querySelectorAll('.modal-prev');
+    showModal(modals, cards, x, next, prev);
+})
 
-// The 'peopleData' array goes hold
-let peopleData = [];
 
-// The 'galleryDiv'
-const galleryDiv = document.getElementById('gallery');
+// Search Event Listeners
+searchSubmit.addEventListener('click', searchButton);
+searchSpace.addEventListener('keyup', searchInput);
 
-/* ===================================== 
-   Functions
-======================================== */
+// Helper Functions:
 
-/**
- * Takes in details about a person and returns a business card in the form of
- * a html string The 'index' parameter is the index of this person in the 
- * 'peopleData' array. This way we can quickly grab additional information 
- * about this person from the array if needed (i.e. when the user clicks the 
- * card and the modal gets displayed)
- *
- * @param {object} person - The details of the person
- * @returns {string} - The business card (html)
- */
-function createCard(person) {
-    return `
-        <div class="card" data-index="${person.index}">
-            <div class="card-img-container" data-index="${person.index}">
-                <img class="card-img"  data-index="${person.index}"
-                src="${person.imageSrc}" alt="profile picture">
-            </div>
-            <div class="card-info-container" data-index="${person.index}">
-                <h3 id="name" class="card-name cap"  data-index="${person.index}">
-                  ${person.name}
-                </h3>
-                <p class="card-text" data-index="${person.index}">${person.email}</p>
-                <p class="card-text cap" data-index="${person.index}">
-                    ${person.city}, ${person.state}
-                </p>
-            </div>
-        </div>        
-    `;
-}
-
-/**
- * Takes in details about a person and returns the modal containing the persons 
- * data as a html string. Same as 'createCard' then, but the 'modal' contains 
- * more details. We store the index here as well, so it is easy to navigate 
- * forwards and backwards through the 'peopleData' array when the user clicks 
- * the prev/ next buttons on the modal
- *
- * @param {object} person - The details of the person
- * @returns {string} - The modal (html)
- */
- function createModal(person) {
-    return `
-        <div class="modal-container">
-            <div class="modal">
-                <button type="button" id="modal-close-btn" class="modal-close-btn">
-                    <strong>X</strong>
-                </button>
-                <div class="modal-info-container">
-                    <img class="modal-img" 
-                        src="${person.imageSrc}" 
-                        alt="profile picture"
-                    >
-                    <h3 id="name" class="modal-name cap">
-                        ${person.name}
-                    </h3>
-                    <p class="modal-text">${person.email}</p>
-                    <p class="modal-text cap">${person.city}</p>
-                    <hr>
-                    <p class="modal-text">${reformatCellNr(person.cell)}</p>
-                    <p class="modal-text">
-                        ${person.number} ${person.street}, 
-                        ${person.state}, ${person.postcode}
-                    </p>
-                    <p class="modal-text">
-                        Birthday: ${reformatBirthDay(person.birthday)}
-                    </p>
-                </div>
-            </div>
-            <div class="modal-btn-container" data-index="${person.index}">
-                <button type="button" id="modal-prev" class="modal-prev btn">
-                    Prev
-                </button>
-                <button type="button" id="modal-next" class="modal-next btn">
-                    Next
-                </button>
-            </div>
+// Display Gallery With Data From API
+function galleryHtml(data) {
+    const cards = data.results;
+    cards.forEach(card => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = ` <div class="card-img-container">
+        <img class="card-img" src="${card.picture.medium}" alt="profile picture">
         </div>
-    `;
+        <div class="card-info-container">
+            <h3 id="name" class="card-name cap">${card.name.first} ${card.name.last}</h3>
+            <p class="card-text">${card.email}</p>
+            <p class="card-text cap">${card.location.city}, ${card.location.state}</p>
+        </div>`;
+        gallery.appendChild(div);
+    })
 }
 
-/**
- * Updates the contents of the modal using the data of the parameter "person". 
- * It also keeps track of the index in the 'peopleData' array by storing the 
- * 'index' parameter in the html as a data attribute.
- *
- * @param {object} person - The details of the person
- * @returns {void} - Does not return anything
- */
-function updateModalContent(person) {
-    // select the html elements inside the model that need to be updated
-    const modalContainerDiv = document.querySelector('.modal-container');
-    const img = modalContainerDiv.querySelector('img');
-    const nameH3 = modalContainerDiv.querySelector('#name');
-    const paragraphs = modalContainerDiv.querySelectorAll('p');
-    const modalBtnContainerDiv = 
-        modalContainerDiv.querySelector('.modal-btn-container');
-
-    // update the html elements with the details from 'person'
-    img.src = person.imageSrc;
-    nameH3.innerHTML = person.name;
-    paragraphs[0].innerHTML = person.email;
-    paragraphs[1].innerHTML = person.city;
-    paragraphs[2].innerHTML = person.cell; 
-    paragraphs[3].innerHTML = `${person.number} ${person.street}, ` + 
-                              `${person.state}, ${person.postcode}`;
-    paragraphs[4].innerHTML = `Birthday: ${person.birthday}`; 
-    modalBtnContainerDiv.dataset.index = `${person.index}`;
+// Display Modal of Employee With Data From API
+function modalHtml(data) {
+    const modals = data.results;
+    modals.forEach(modal => {
+        const modalContainer = document.createElement('div');
+        modalContainer.className = 'modal-container';
+        modalContainer.innerHTML = 
+            `<div class="modal">
+                <button type="button" id="modal-close-btn" class="modal-close-btn"><strong>X</strong></button>
+                <div class="modal-info-container">
+                    <img class="modal-img" src="${modal.picture.large}" alt="profile picture">
+                    <h3 id="name" class="modal-name cap">${modal.name.first} ${modal.name.last}</h3>
+                    <p class="modal-text">${modal.email}</p>
+                    <p class="modal-text cap">${modal.location.city}</p>
+                    <hr>
+                    <p class="modal-text">${modal.phone}</p>
+                    <p class="modal-text">${modal.location.street.number} ${modal.location.street.name}, ${modal.location.city}, ${modal.location.state}, ${modal.location.postcode}</p>
+                    <p class="modal-text">Birthday: ${modal.dob.date.slice(0,10)}</p>
+                    <div class="modal-btn-container">
+                    <button type="button" id="modal-prev" class="modal-prev btn">Prev</button>
+                    <button type="button" id="modal-next" class="modal-next btn">Next</button>
+                </div>
+                </div>
+            </div>`;
+        gallery.appendChild(modalContainer);
+        modalContainer.style.display = 'none';
+    })
+}
+// Show Modal When Employee Card Is Clicked
+function showModal(modal, cards, x, next, prev) {
+    cards.forEach((card, index) => {
+        card.addEventListener('click', () => {
+            current = index;
+            modal[current].style.display = '';
+            closeModal(x[current], modal[current])
+            changeModal(modal, next, prev, x)
+            console.log(modal[current]);
+        })
+    })
 }
 
-/**
- * Adds the search functionality on the top right of the screen. Also adds the
- * event listener including the search logic
- *
- * @param {void} - Takes no parameters
- * @returns {void} - Does not return anything
- */
-function addSearch() {
-    const searchContainerDiv = document.querySelector('.search-container');
-    searchContainerDiv.innerHTML = 
-        `<form action="#" method="get">
-            <input type="search" id="search-input" class="search-input" 
-                placeholder="Search...">
-            <input type="submit" value="&#x1F50D;" id="search-submit" 
-                class="search-submit">
-        </form>`;
+// Close Modal Via X Button
+function closeModal(x, modal) {
+   x.addEventListener('click', () => {
+       modal.style.display = 'none';
+       console.log("Modal removed");
+   })
+}
 
-    document.querySelector('form').addEventListener('submit', (event) => {
-        // we don't want the form to refresh the page on submission
-        event.preventDefault();
-        // Take the input from the user and transform to uppercase for easy searching
-        const input = document.getElementById('search-input').value.toUpperCase();
-        let html = '';
-        for(person of peopleData) {            
-            const name = person.name.toUpperCase();
-            if(name.includes(input)) {
-                html += createCard(person);
-            } 
+// Change Modal Via Next/Prev Buttons
+function changeModal(modal, next, prev, x) {
+    next.forEach((next, index) => {
+        next.addEventListener('click', () => {
+            modal[current].style.display = 'none';
+            current = index;
+            if(current === 11) {current = -1}
+            current += 1;
+            modal[current].style.display = '';
+            closeModal(x[current], modal[current]);
+        })
+    })
+    prev.forEach((prev, index) => {
+        prev.addEventListener('click', () => {
+            modal[current].style.display = 'none';
+            current = index;
+            if(current === 0) {current = 12}
+            current -= 1;
+            modal[current].style.display = '';
+            closeModal(x[current], modal[current]);
+        })
+    })
+}
+
+// Search Employee via Button
+function searchButton(e) {
+    const searchValue = searchSpace.value.toUpperCase();
+    const div = document.querySelectorAll('.card');
+    div.forEach(person => {
+        let a = person.querySelector('h3');
+        if (a.innerHTML.toUpperCase().indexOf(searchValue) > -1) {
+            a.parentElement.parentElement.style.display = '';
+        }else {
+            a.parentElement.parentElement.style.display = 'none';
         }
-        if(html.length  === 0) {
-            html = '<h3>Your search yielded no results</h3>';
-        } 
-        galleryDiv.innerHTML = html;
-    });
+    })
+    e.preventDefault();
 }
 
-/**
- * Fetch helper function for error handling
- *
- * @param {response} - takes the response from a fetch request
- * @returns {promise} - returns a promise that resolves or rejects
- *                      depending on whether the fetch succeeded
- */
-function checkStatus(response) {
-    if(response.ok) {
-        return Promise.resolve(response);
-    } else {
-        return Promise.reject(new Error(response.statusText));
-    }
-}
-
-
-/**
- * fetchData needs an url and returns a promise that resolves to the requested
- * data as a javascript object (rather than a json string)
- *
- * @param {String} url - the full url of the api, parameters included
- * @returns {promise} - returns a promise that resolves or rejects
- *                      depending on whether the fetch succeeded
- */
-function fetchData(url) {
-    return fetch(url)
-        // only continue if we got http status 200 OK:
-        .then(checkStatus) 
-        // transform the JSON string into a javascript object:
-        .then(response => response.json())
-        // catch failures of fetch (network error, etc):
-        .catch(error => console.log('Looks like there was a problem!', error));
-}
-
-// returns the full api url
-function getAPIString(api) {
-    return `${api.url}?${api.parameters.join('&')}`;
-}
-
-// reformats the phone number to the desired format
-function reformatCellNr(cellNr) {
-    // keep digits only using regex & replace: 
-    let retStr = cellNr.replace(/[^\d]/g, ''); 
-    // And now we recreate the string in the desired format:
-    retStr = `(${retStr.slice(0, 3)}) ${retStr.slice(3,6)}-${retStr.slice(6,retStr.length)}`;
-    return retStr;
-}
-
-// reformats the birthday in the desired format
-function reformatBirthDay(birthday) {
-    // we only need the date, not the time:
-    let retStr = birthday.substring(0,10);
-        // let's put the year, month and day in the desired order:
-        retStr = retStr.replace(/^\d{2}(\d{2})-(\d{2})-(\d{2})/, '$2/$3/$1');
-    return retStr;
-}
-
-/**
- * Takes the array of people as a parameter and stores the data in the global 
- * variable 'peopleData' for later use.
- *
- * @param {Array of objects} peopleArray - the data returned from the api
- * @returns {promise} - returns a promise that resolves to the newly arranged
- *                      data: the 'peopleData' array.
- */
-function savePeopleData(peopleArray) {
-    for(let i = 0; i < peopleArray.length; i++ ) {
-        const person = peopleArray[i];
-        peopleData.push({
-            'index': i,
-            'imageSrc': person.picture.large,
-            'name': `${person.name.first} ${person.name.last}`,
-            'email': person.email,
-            'birthday': reformatBirthDay(person.dob.date),
-            'cell': reformatCellNr(person.cell),
-            'street': person.location.street.name,
-            'number': person.location.street.number,
-            'city': person.location.city,
-            'postcode': person.location.postcode,
-            'state': person.location.state
-        });
-    }
-    return peopleData;
-}
-
-
-/**
- * Takes a 'people' javascript object array and insert cards made with the
- * 'createCard' function into the DOM. It returns its parameter unmodified so 
- * that further ".then()" statements can be chained to the calling promise.
- *
- * @param {Array of objects} people - the data returned from the api
- * @returns {Array of objects} - returns the same array
- */
-function insertPeopleToDom(people) {
-    galleryDiv.innerHTML = '';
-    for(let i = 0; i < people.length; i++) {
-        galleryDiv.insertAdjacentHTML('beforeend', createCard(people[i]));
-    }        
-    return people;
-}
-
-/* ===================================== 
-   Script
-======================================== */
-
-// Give a loading screen to the user
-galleryDiv.innerHTML = '<h1>Loading Data...</h1>';
-
-// Fetch the data from the api and display the cards:
-fetchData(getAPIString(api))
-    // we take what we need from the response and tail it to our needs
-    .then(response => savePeopleData(response.results))
-    // we insert each person into an html string and attach that to the DOM
-    .then(insertPeopleToDom)
-    // catch failures with fetch (network error, etc):
-    .catch(error => console.log('Looks like there was a problem!', error));
-
-// Add search functionality    
-addSearch();
-
-// Add the event listener that shows the modal when the user clicks on a card
-galleryDiv.addEventListener('click', (event) => {
-    const modalContainerDivs = document.getElementsByClassName('modal-container');
-    const modalIsOpen = modalContainerDivs.length > 0;
-    const index = event.target.dataset.index;    
-    // exit function if index is not defined or if the modal is already open
-    if(!index || modalIsOpen) {
-        return;
-    }
-    galleryDiv.insertAdjacentHTML('beforeend', createModal(peopleData[index]));
-    const modalCloseButton = document.getElementById('modal-close-btn');            
-    modalCloseButton.addEventListener('click', () => {
-        modalCloseButton.parentNode.parentNode.remove();
-    });
-    //  event listeners for the navigation buttons
-    const navButtons = [
-        document.getElementById('modal-prev'),
-        document.getElementById('modal-next')
-    ];
-    for(btn of navButtons) {
-        btn.addEventListener('click', (event) => {
-            console.log('adding event listener for ', btn); // DEBUG
-            let index = parseInt(event.target.parentNode.dataset.index);
-            if(event.target.id === 'modal-prev' && index > 0) {                        
-                index--;
-                updateModalContent(peopleData[index]);
-            } 
-            else if(event.target.id === 'modal-next' && 
-                    index < (peopleData.length - 1)) { 
-                index++;
-                updateModalContent(peopleData[index]);
-            }                    
-        });
-    }
-});
+// Search Employee by Typing
+function searchInput() {
+    const searchValue = searchSpace.value.toUpperCase();
+    const div = document.querySelectorAll('.card');
+    div.forEach(person => {
+        let a = person.querySelector('h3');
+        if (a.innerHTML.toUpperCase().includes(searchValue) ) {
+            a.parentElement.parentElement.style.display = '';
+        }else {
+            a.parentElement.parentElement.style.display = 'none';
+        }
+    })
+} 
