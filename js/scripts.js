@@ -1,182 +1,151 @@
-/******************************************
- Treehouse Techdegree:
- FSJS project 5 - Public API Requests
- ******************************************/
+//global variables
+let employees = [];
+const urlAPI = `https://randomuser.me/api/?results=12&inc=name, picture,
+email, location, phone, dob &noinfo &nat=US`;
+const headerContainer = document.querySelector(".header-inner-container");
+const searchBox = document.querySelector(".search-input");
+const gallery = document.querySelector(".gallery");
+const modalContainer = document.querySelector(".modal-container");
+modalContainer.style.display = "none";
 
-// Global Variables
-const url = "https://randomuser.me/api/?results=12";
-const gallery = document.getElementById("gallery");
-const searchDiv = document.querySelector(".search-container");
-let results;
+let modalIndex = 0;
 
-// Create Search Bar
-searchDiv.innerHTML = `<form action="#" method="get">
-    <input type="search" id="search-input" class="search-input" placeholder="Search...">
-    <input type="submit" value="&#x1F50D;" id="search-submit" class="search-submit">
-</form>`;
+// fetch data from API
+fetch(urlAPI)
+	.then((res) => res.json())
+	.then((res) => res.results)
+	.then(displayEmployees)
+	.catch((err) => console.log(err));
 
-const searchSubmit = document.getElementById("search-submit");
-const searchSpace = document.getElementById("search-input");
+function displayEmployees(employeeData) {
+	employees = employeeData;
 
-// Fetch data from API //
-function getApi(url) {
-	return fetch(url)
-		.then((data) => data.json())
-		.catch((err) =>
-			console.log(Error(`Oops that wasnt supposed to happen ${err}`))
-		);
-}
-// Call API Function
-getApi(url)
-	.then((data) => {
-		galleryHtml(data);
-		modalHtml(data);
-	})
-	.then(() => {
-		const cards = document.querySelectorAll(".card");
-		const modals = document.querySelectorAll(".modal-container");
-		const x = document.querySelectorAll(".modal-close-btn");
-		const next = document.querySelectorAll(".modal-next");
-		const prev = document.querySelectorAll(".modal-prev");
-		showModal(modals, cards, x, next, prev);
+	let employeeHTML = "";
+
+	employees.forEach((employee, index) => {
+		let name = employee.name;
+		let email = employee.email;
+		let city = employee.location.city;
+		let state = employee.location.state;
+		let picture = employee.picture;
+
+		// template literals make this look so nice
+		employeeHTML += `<div class="card" data-index="${index}">
+    <div class="card-img-container">
+        <img class="card-img" src="${picture.large}" alt="profile picture">
+    </div>
+    <div class="card-info-container">
+        <h3 id="name" class="card-name cap">${name.first} ${name.last}</h3>
+        <p class="card-text">${email}</p>
+        <p class="card-text cap">${city}, ${state}</p>
+    </div>
+ </div>
+ `;
 	});
+	gallery.innerHTML = employeeHTML;
+}
 
-// Search Event Listeners
-searchSubmit.addEventListener("click", searchButton);
-searchSpace.addEventListener("keyup", searchInput);
+//display modal
+function displayModal(index) {
+	let {
+		name,
+		dob,
+		phone,
+		email,
+		location: { city, street, state, postcode },
+		picture,
+	} = employees[index];
 
-// Helper Functions:
+	let date = new Date(dob.date);
 
-// Display Gallery With Data From API
-function galleryHtml(data) {
-	const cards = data.results;
-	cards.forEach((card) => {
-		const div = document.createElement("div");
-		div.className = "card";
-		div.innerHTML = ` <div class="card-img-container">
-        <img class="card-img" src="${card.picture.medium}" alt="profile picture">
+	const modalHTML = `
+    <div class="modal-container">
+                <div class="modal">
+                    <button type="button" id="modal-close-btn" class="modal-close-btn"><strong>X</strong></button>
+                    <div class="modal-info-container">
+                        <img class="modal-img" src="${picture.large}">
+                        <h3 id="name" class="modal-name cap">${name.first} ${
+		name.last
+	}</h3>
+                        <p class="modal-text">${email}</p>
+                        <p class="modal-text cap">${city}</p>
+                        <hr>
+                        <p class="modal-text">${phone}</p>
+                        <p class="modal-text">${street.number}, ${
+		street.name
+	}, ${state}, ${postcode}</p>
+                        <p class="modal-text">Birthday: ${
+													date.getMonth() + 1
+												}/${date.getDate()}/${date.getFullYear()}</p>
+                    </div>
+                </div>
+
+        <div class="modal-btn-container">
+            <button type="button" id="modal-prev" class="modal-prev btn">Prev</button>
+            <button type="button" id="modal-next" class="modal-next btn">Next</button>
         </div>
-        <div class="card-info-container">
-            <h3 id="name" class="card-name cap">${card.name.first} ${card.name.last}</h3>
-            <p class="card-text">${card.email}</p>
-            <p class="card-text cap">${card.location.city}, ${card.location.state}</p>
-        </div>`;
-		gallery.appendChild(div);
-	});
-}
+    </div>
+    `;
 
-// Display Modal of Employee With Data From API
-function modalHtml(data) {
-	const modals = data.results;
-	modals.forEach((modal) => {
-		const modalContainer = document.createElement("div");
-		modalContainer.className = "modal-container";
-		modalContainer.innerHTML = `<div class="modal">
-                <button type="button" id="modal-close-btn" class="modal-close-btn"><strong>X</strong></button>
-                <div class="modal-info-container">
-                    <img class="modal-img" src="${
-											modal.picture.large
-										}" alt="profile picture">
-                    <h3 id="name" class="modal-name cap">${modal.name.first} ${
-			modal.name.last
-		}</h3>
-                    <p class="modal-text">${modal.email}</p>
-                    <p class="modal-text cap">${modal.location.city}</p>
-                    <hr>
-                    <p class="modal-text">${modal.phone}</p>
-                    <p class="modal-text">${modal.location.street.number} ${
-			modal.location.street.name
-		}, ${modal.location.city}, ${modal.location.state}, ${
-			modal.location.postcode
-		}</p>
-                    <p class="modal-text">Birthday: ${modal.dob.date.slice(
-											0,
-											10
-										)}</p>
-                    <div class="modal-btn-container">
-                    <button type="button" id="modal-prev" class="modal-prev btn">Prev</button>
-                    <button type="button" id="modal-next" class="modal-next btn">Next</button>
-                </div>
-                </div>
-            </div>`;
-		gallery.appendChild(modalContainer);
+	modalContainer.style.display = "block";
+	modalContainer.innerHTML = modalHTML;
+	modalIndex = index;
+	const modalClose = document.querySelector(".modal-close-btn");
+
+	// and close out the modal
+	modalClose.addEventListener("click", (e) => {
 		modalContainer.style.display = "none";
 	});
-}
-// Show Modal When Employee Card Is Clicked
-function showModal(modal, cards, x, next, prev) {
-	cards.forEach((card, index) => {
-		card.addEventListener("click", () => {
-			results = index;
-			modal[results].style.display = "";
-			closeModal(x[results], modal[results]);
-			changeModal(modal, next, prev, x);
-			console.log(modal[results]);
-		});
-	});
-}
 
-// Close Modal Via X Button
-function closeModal(x, modal) {
-	x.addEventListener("click", () => {
-		modal.style.display = "none";
-		console.log("Modal removed");
-	});
-}
+	// switching between modals
 
-// Change Modal Via Next/Prev Buttons
-function changeModal(modal, next, prev, x) {
-	next.forEach((next, index) => {
-		next.addEventListener("click", () => {
-			modal[results].style.display = "none";
-			results = index;
-			if (results === 11) {
-				results = -1;
+	const previous = document.querySelector(".modal-prev");
+	const next = document.querySelector(".modal-next");
+
+	modalContainer.addEventListener("click", (e) => {
+		if (e.target === previous) {
+			if (typeof modalIndex === "string") {
+				modalIndex = parseInt(modalIndex, 10);
 			}
-			results += 1;
-			modal[results].style.display = "";
-			closeModal(x[results], modal[results]);
-		});
-	});
-	prev.forEach((prev, index) => {
-		prev.addEventListener("click", () => {
-			modal[results].style.display = "none";
-			results = index;
-			if (results === 0) {
-				results = 12;
+			if (modalIndex === 0) {
+				displayModal(11);
+			} else {
+				modalIndex--;
+				displayModal(modalIndex);
 			}
-			results -= 1;
-			modal[results].style.display = "";
-			closeModal(x[results], modal[results]);
-		});
-	});
-}
-
-// Search Employee via Button
-function searchButton(e) {
-	const searchValue = searchSpace.value.toUpperCase();
-	const div = document.querySelectorAll(".card");
-	div.forEach((person) => {
-		let a = person.querySelector("h3");
-		if (a.innerHTML.toUpperCase().indexOf(searchValue) > -1) {
-			a.parentElement.parentElement.style.display = "";
-		} else {
-			a.parentElement.parentElement.style.display = "none";
 		}
-	});
-	e.preventDefault();
-}
 
-// Search Employee by Typing
-function searchInput() {
-	const searchValue = searchSpace.value.toUpperCase();
-	const div = document.querySelectorAll(".card");
-	div.forEach((person) => {
-		let a = person.querySelector("h3");
-		if (a.innerHTML.toUpperCase().includes(searchValue)) {
-			a.parentElement.parentElement.style.display = "";
-		} else {
-			a.parentElement.parentElement.style.display = "none";
+		if (e.target === next) {
+			if (typeof modalIndex === "string") {
+				modalIndex = parseInt(modalIndex, 10);
+			}
+			if (modalIndex === 11) {
+				displayModal(0);
+			} else {
+				modalIndex++;
+				displayModal(modalIndex);
+			}
 		}
 	});
 }
+
+gallery.addEventListener("click", (e) => {
+	if (e.target !== gallery) {
+		const card = e.target.closest(".card");
+		const index = card.getAttribute("data-index");
+		displayModal(index);
+	}
+});
+
+searchBox.addEventListener("input", (e) => {
+	const employeeNames = document.querySelectorAll("#name");
+	let searchTerm = e.target.value.toLowerCase();
+
+	employeeNames.forEach((name) => {
+		if (name.textContent.toLowerCase().includes(searchTerm)) {
+			name.parentElement.parentElement.style.display = "flex";
+		} else {
+			name.parentElement.parentElement.style.display = "none";
+		}
+	});
+});
